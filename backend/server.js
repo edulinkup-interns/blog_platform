@@ -4,19 +4,11 @@ const authRoutes = require("./routes/authRoutes");
 const protect = require("./middleware/authMiddleware");
 const blogRoutes = require("./routes/blogRoutes");
 require("dotenv").config();
-
 const connectDB = require("./config/db");
-
 const app = express();
 const path = require("path");
-
-
-
 // connect database
 connectDB();
-
-
-
 // middlewares
 app.use(cors());
 app.use(express.json());

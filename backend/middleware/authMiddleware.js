@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
 
-  // check token in headers
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -15,8 +15,15 @@ const protect = (req, res, next) => {
       // verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // attach user info to request
-      req.user = decoded;
+      // 🔥 FETCH USER FROM DB (IMPORTANT)
+      const user = await User.findById(decoded.id).select("-password");
+
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      // attach full user
+      req.user = user;
 
       next();
     } catch (error) {
