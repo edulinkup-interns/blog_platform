@@ -1,25 +1,27 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Editor } from "@tinymce/tinymce-react";
 import { createBlog } from "../api/api";
 import Navbar from "../components/Navbar";
 import "../styles/dashboard.css";
 
 const CATEGORIES = ["Technology","Lifestyle","Travel","Food","Health","Business","Education","Entertainment","Sports","Other"];
 
+const TINYMCE_KEY = "z2wlhik33yf4l6fx8gm772tw9ipxmijb01iaagdxguernzwx"; // replace with your free key from tiny.cloud
+
 export default function CreatePost() {
   const navigate = useNavigate();
+  const editorRef = useRef(null);
 
-  const [form, setForm] = useState({
-    title: "", content: "", category: "", tags: "", status: "draft",
-  });
-  const [image, setImage]       = useState(null);
-  const [preview, setPreview]   = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState("");
+  const [form, setForm] = useState({ title: "", category: "", tags: "", status: "draft" });
+  const [image, setImage]     = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
 
   const handleChange = (e) => {
     setError("");
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
   const handleImage = (e) => {
@@ -31,7 +33,8 @@ export default function CreatePost() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.content || !form.category) {
+    const content = editorRef.current ? editorRef.current.getContent() : "";
+    if (!form.title || !content || !form.category) {
       setError("Title, content and category are required.");
       return;
     }
@@ -39,7 +42,7 @@ export default function CreatePost() {
       setLoading(true);
       const fd = new FormData();
       fd.append("title",    form.title);
-      fd.append("content",  form.content);
+      fd.append("content",  content);
       fd.append("category", form.category);
       fd.append("status",   form.status);
       if (form.tags) {
@@ -67,11 +70,7 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {error && (
-          <div className="auth-error" style={{ marginBottom: "20px" }}>
-            <span>⚠</span> {error}
-          </div>
-        )}
+        {error && <div className="auth-error" style={{ marginBottom: 20 }}><span>⚠</span> {error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-card">
@@ -79,11 +78,7 @@ export default function CreatePost() {
 
               <div className="form-field full">
                 <label className="form-label">Title *</label>
-                <input
-                  name="title" type="text" className="form-input"
-                  placeholder="Give your post a great title…"
-                  value={form.title} onChange={handleChange}
-                />
+                <input name="title" type="text" className="form-input" placeholder="Give your post a great title…" value={form.title} onChange={handleChange} />
               </div>
 
               <div className="form-field">
@@ -96,19 +91,27 @@ export default function CreatePost() {
 
               <div className="form-field">
                 <label className="form-label">Tags</label>
-                <input
-                  name="tags" type="text" className="form-input"
-                  placeholder="react, javascript, webdev  (comma separated)"
-                  value={form.tags} onChange={handleChange}
-                />
+                <input name="tags" type="text" className="form-input" placeholder="react, javascript (comma separated)" value={form.tags} onChange={handleChange} />
               </div>
 
+              {/* ── TinyMCE rich text editor ── */}
               <div className="form-field full">
                 <label className="form-label">Content *</label>
-                <textarea
-                  name="content" className="form-textarea"
-                  placeholder="Start writing your post here…"
-                  value={form.content} onChange={handleChange}
+                <Editor
+                  apiKey={TINYMCE_KEY}
+                  onInit={(evt, editor) => (editorRef.current = editor)}
+                  initialValue=""
+                  init={{
+                    height: 420,
+                    menubar: false,
+                    plugins: ["advlist","autolink","lists","link","image","charmap","preview","searchreplace","visualblocks","code","fullscreen","insertdatetime","media","table","code","help","wordcount"],
+                    toolbar: "undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | removeformat | help",
+                    content_style: "body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.7; color: #0a0a0a; }",
+                    skin: "oxide",
+                    branding: false,
+                    statusbar: false,
+                    placeholder: "Start writing your post here…",
+                  }}
                 />
               </div>
 
@@ -121,9 +124,7 @@ export default function CreatePost() {
                   ) : (
                     <>
                       <div className="image-upload-icon">🖼</div>
-                      <div className="image-upload-text">
-                        <strong>Click to upload</strong> or drag and drop
-                      </div>
+                      <div className="image-upload-text"><strong>Click to upload</strong> or drag and drop</div>
                     </>
                   )}
                 </div>
@@ -132,18 +133,12 @@ export default function CreatePost() {
               <div className="form-field full">
                 <label className="form-label">Publish Status</label>
                 <div className="status-toggle">
-                  <div
-                    className={"status-opt" + (form.status === "draft" ? " selected" : "")}
-                    onClick={() => setForm((p) => ({ ...p, status: "draft" }))}
-                  >
+                  <div className={"status-opt" + (form.status === "draft" ? " selected" : "")} onClick={() => setForm((p) => ({ ...p, status: "draft" }))}>
                     <div className="status-opt-icon">📝</div>
                     <div className="status-opt-label">Draft</div>
                     <div className="status-opt-desc">Save privately</div>
                   </div>
-                  <div
-                    className={"status-opt" + (form.status === "published" ? " selected" : "")}
-                    onClick={() => setForm((p) => ({ ...p, status: "published" }))}
-                  >
+                  <div className={"status-opt" + (form.status === "published" ? " selected" : "")} onClick={() => setForm((p) => ({ ...p, status: "published" }))}>
                     <div className="status-opt-icon">🌐</div>
                     <div className="status-opt-label">Published</div>
                     <div className="status-opt-desc">Visible to everyone</div>

@@ -31,6 +31,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // ✅ NEW
+    bio: {
+      type: String,
+      default: "",
+      maxlength: 300,
+    },
   },
   { timestamps: true }
 );

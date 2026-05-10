@@ -7,10 +7,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
+  const handleLogout = () => { logout(); navigate("/login"); };
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -26,38 +23,20 @@ export default function Navbar() {
       <div className="navbar-right">
         {user?.role === "author" ? (
           <>
-            <Link
-              to="/dashboard"
-              className={`navbar-link${location.pathname === "/dashboard" ? " active" : ""}`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/feed"
-              className={`navbar-link${location.pathname === "/feed" ? " active" : ""}`}
-            >
-              Feed
-            </Link>
-            <Link to="/create" className="navbar-btn">
-              + New Post
-            </Link>
+            <Link to="/dashboard" className={"navbar-link" + (location.pathname === "/dashboard" ? " active" : "")}>Dashboard</Link>
+            <Link to="/feed"      className={"navbar-link" + (location.pathname === "/feed"      ? " active" : "")}>Feed</Link>
+            <Link to="/create"    className="navbar-btn">+ New Post</Link>
           </>
         ) : (
-          <Link
-            to="/feed"
-            className={`navbar-link${location.pathname === "/feed" ? " active" : ""}`}
-          >
-            Feed
-          </Link>
+          <Link to="/feed" className={"navbar-link" + (location.pathname === "/feed" ? " active" : "")}>Feed</Link>
         )}
 
-        <div className="navbar-avatar" title={user?.name}>
-          {initials}
-        </div>
+        {/* avatar → profile page */}
+        <Link to="/profile" title={user?.name} style={{ textDecoration: "none" }}>
+          <div className="navbar-avatar">{initials}</div>
+        </Link>
 
-        <button className="navbar-logout" onClick={handleLogout}>
-          Logout
-        </button>
+        <button className="navbar-logout" onClick={handleLogout}>Logout</button>
       </div>
     </nav>
   );

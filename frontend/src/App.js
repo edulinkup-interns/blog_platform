@@ -5,7 +5,9 @@ import Signup     from "./pages/Signup";
 import Home       from "./pages/Home";
 import Dashboard  from "./pages/Dashboard";
 import CreatePost from "./pages/CreatePost";
-import EditPost   from "./pages/EditPost";
+import EditPost    from "./pages/EditPost";
+import BlogDetail  from "./pages/BlogDetail";
+import Profile     from "./pages/Profile";
 import "./styles/global.css";
 
 // ─── Route Guards ─────────────────────────────────────────────────────────────
@@ -67,6 +69,18 @@ function AppRoutes() {
       <Route
         path="/edit/:id"
         element={<AuthorRoute><EditPost /></AuthorRoute>}
+      />
+
+      {/* Blog detail - both roles */}
+      <Route
+        path="/blog/:slug"
+        element={<PrivateRoute><BlogDetail /></PrivateRoute>}
+      />
+
+      {/* Profile - both roles */}
+      <Route
+        path="/profile"
+        element={<PrivateRoute><Profile /></PrivateRoute>}
       />
 
       {/* Root redirect */}

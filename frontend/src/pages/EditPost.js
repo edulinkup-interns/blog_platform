@@ -1,38 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getSingleBlog, updateBlog, getBlogs } from "../api/api";
+import { Editor } from "@tinymce/tinymce-react";
+import { updateBlog, getBlogs } from "../api/api";
 import Navbar from "../components/Navbar";
 import "../styles/dashboard.css";
 
 const CATEGORIES = ["Technology","Lifestyle","Travel","Food","Health","Business","Education","Entertainment","Sports","Other"];
+const TINYMCE_KEY = "z2wlhik33yf4l6fx8gm772tw9ipxmijb01iaagdxguernzwx"; // replace with your free key from tiny.cloud
 
 export default function EditPost() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const editorRef = useRef(null);
 
-  const [form, setForm] = useState({
-    title: "", content: "", category: "", tags: "", status: "draft",
-  });
-  const [existingImage, setExistingImage] = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState("");
+  const [form, setForm]           = useState({ title: "", category: "", tags: "", status: "draft" });
+  const [initialContent, setInitialContent] = useState("");
+  const [existingImage, setExistingImage]   = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState("");
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        // We have the id but getSingleBlog needs a slug.
-        // So fetch all blogs and find by id.
         const { data } = await getBlogs({ limit: 100 });
         const post = data.blogs.find((b) => b._id === id);
         if (!post) { setError("Post not found."); return; }
         setForm({
           title:    post.title    || "",
-          content:  post.content  || "",
           category: post.category || "",
           tags:     (post.tags || []).join(", "),
           status:   post.status   || "draft",
         });
+        setInitialContent(post.content || "");
         if (post.featuredImage) setExistingImage("http://localhost:5001/uploads/" + post.featuredImage);
       } catch {
         setError("Failed to load post.");
@@ -45,25 +45,25 @@ export default function EditPost() {
 
   const handleChange = (e) => {
     setError("");
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.content || !form.category) {
+    const content = editorRef.current ? editorRef.current.getContent() : initialContent;
+    if (!form.title || !content || !form.category) {
       setError("Title, content and category are required.");
       return;
     }
     try {
       setSaving(true);
-      const payload = {
+      await updateBlog(id, {
         title:    form.title,
-        content:  form.content,
+        content,
         category: form.category,
         status:   form.status,
         tags:     form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      };
-      await updateBlog(id, payload);
+      });
       navigate("/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update post.");
@@ -91,11 +91,7 @@ export default function EditPost() {
           </div>
         </div>
 
-        {error && (
-          <div className="auth-error" style={{ marginBottom: "20px" }}>
-            <span>⚠</span> {error}
-          </div>
-        )}
+        {error && <div className="auth-error" style={{ marginBottom: 20 }}><span>⚠</span> {error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div className="form-card">
@@ -103,11 +99,7 @@ export default function EditPost() {
 
               <div className="form-field full">
                 <label className="form-label">Title *</label>
-                <input
-                  name="title" type="text" className="form-input"
-                  placeholder="Post title…"
-                  value={form.title} onChange={handleChange}
-                />
+                <input name="title" type="text" className="form-input" placeholder="Post title…" value={form.title} onChange={handleChange} />
               </div>
 
               <div className="form-field">
@@ -120,47 +112,48 @@ export default function EditPost() {
 
               <div className="form-field">
                 <label className="form-label">Tags</label>
-                <input
-                  name="tags" type="text" className="form-input"
-                  placeholder="react, javascript (comma separated)"
-                  value={form.tags} onChange={handleChange}
-                />
+                <input name="tags" type="text" className="form-input" placeholder="react, javascript (comma separated)" value={form.tags} onChange={handleChange} />
               </div>
 
+              {/* ── TinyMCE ── */}
               <div className="form-field full">
                 <label className="form-label">Content *</label>
-                <textarea
-                  name="content" className="form-textarea"
-                  placeholder="Your post content…"
-                  value={form.content} onChange={handleChange}
-                />
+                {initialContent !== "" || !loading ? (
+                  <Editor
+                    apiKey={TINYMCE_KEY}
+                    onInit={(evt, editor) => (editorRef.current = editor)}
+                    initialValue={initialContent}
+                    init={{
+                      height: 420,
+                      menubar: false,
+                      plugins: ["advlist","autolink","lists","link","image","charmap","preview","searchreplace","visualblocks","code","fullscreen","insertdatetime","media","table","code","help","wordcount"],
+                      toolbar: "undo redo | blocks | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image | removeformat | help",
+                      content_style: "body { font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.7; color: #0a0a0a; }",
+                      skin: "oxide",
+                      branding: false,
+                      statusbar: false,
+                    }}
+                  />
+                ) : null}
               </div>
 
               {existingImage && (
                 <div className="form-field full">
                   <label className="form-label">Current Image</label>
                   <img src={existingImage} alt="current" className="image-preview" style={{ marginTop: 0 }} />
-                  <p style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "6px" }}>
-                    Image editing not supported — delete and recreate the post to change it.
-                  </p>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>To change image, delete and recreate the post.</p>
                 </div>
               )}
 
               <div className="form-field full">
                 <label className="form-label">Publish Status</label>
                 <div className="status-toggle">
-                  <div
-                    className={"status-opt" + (form.status === "draft" ? " selected" : "")}
-                    onClick={() => setForm((p) => ({ ...p, status: "draft" }))}
-                  >
+                  <div className={"status-opt" + (form.status === "draft" ? " selected" : "")} onClick={() => setForm((p) => ({ ...p, status: "draft" }))}>
                     <div className="status-opt-icon">📝</div>
                     <div className="status-opt-label">Draft</div>
                     <div className="status-opt-desc">Save privately</div>
                   </div>
-                  <div
-                    className={"status-opt" + (form.status === "published" ? " selected" : "")}
-                    onClick={() => setForm((p) => ({ ...p, status: "published" }))}
-                  >
+                  <div className={"status-opt" + (form.status === "published" ? " selected" : "")} onClick={() => setForm((p) => ({ ...p, status: "published" }))}>
                     <div className="status-opt-icon">🌐</div>
                     <div className="status-opt-label">Published</div>
                     <div className="status-opt-desc">Visible to everyone</div>
