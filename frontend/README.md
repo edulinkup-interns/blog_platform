@@ -60,9 +60,6 @@ npm start
 Frontend: Vercel
 Backend: Render
 Database: MongoDB Atlas
-📸 Screenshots
-
-
 
 🚀 Future Improvements
 🔔 Notifications system
